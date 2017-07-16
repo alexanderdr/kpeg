@@ -1,0 +1,9 @@
+.idea
+dist
+nbproject
+out
+test
+build
+.gradle
+gradle/
+gradlew*

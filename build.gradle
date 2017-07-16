@@ -1,0 +1,33 @@
+version '1.0-SNAPSHOT'
+
+buildscript {
+    ext.kotlin_version = '1.1.2-2'
+
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: 'kotlin'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    testCompile group: 'org.testng', name: 'testng', version: '6.10'
+}
+compileKotlin {
+    kotlinOptions {
+        languageVersion = "1.1"
+    }
+}
+compileTestKotlin {
+    kotlinOptions {
+        languageVersion = "1.1"
+    }
+}
