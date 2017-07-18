@@ -2,7 +2,6 @@
 dist
 nbproject
 out
-test
 build
 .gradle
 gradle/
