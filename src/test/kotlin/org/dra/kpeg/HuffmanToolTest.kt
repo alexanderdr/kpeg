@@ -1,9 +1,8 @@
 package org.dra.kpeg
 
-import org.dra.kpeg.util.i
 import org.dra.kpeg.util.toBinaryString
 import org.testng.Assert
-import org.testng.Assert.*
+import org.testng.Assert.assertEquals
 import org.testng.annotations.Test
 
 /**

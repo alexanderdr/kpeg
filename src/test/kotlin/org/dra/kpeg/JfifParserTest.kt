@@ -1,8 +1,5 @@
 package org.dra.kpeg
 
-import org.testng.annotations.Test
-import java.io.File
-
 /**
  * Created by Derek Alexander
  */

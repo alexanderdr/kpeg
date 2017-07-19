@@ -175,7 +175,7 @@ class JpegCodecTest {
 
     @Test
     fun testGeneratedHuffmanTreeIsSufficientlyShallow() {
-        val (width, height, dataBytes) = loadFilenameAsBytes("testData.jpg")
+        val (width, height, dataBytes) = loadFilenameAsBytes("testDataOdd.jpg")
 
         //This is now how this will actually be used, but it's sufficient for testing that the rules are followed
         val tree = HuffmanTool.buildJpegFriendlyTree(dataBytes)
