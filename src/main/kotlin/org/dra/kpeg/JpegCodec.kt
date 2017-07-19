@@ -17,25 +17,6 @@ open class JpegCodec {
 
     companion object {
 
-        //todo: The user should be able to specify some level of control over this table
-        /*val midQualityQMatrix = intArrayOf(16, 11, 10, 16, 24, 40, 51, 61,
-                                            12, 12, 14, 19, 26, 58, 60, 55,
-                                            14, 13, 16, 24, 40, 57, 69, 56,
-                                            14, 17, 22, 29, 51, 87, 80, 62,
-                                            18, 22, 37, 56, 68, 109, 103, 77,
-                                            24, 35, 55, 64, 81, 104, 113, 92,
-                                            49, 64, 78, 87, 103, 121, 120, 101,
-                                            72, 92, 95, 98, 112, 100, 103, 99)
-
-        val higherQualityQMatrix = intArrayOf(8, 16, 16, 18, 24, 32, 32, 48,
-                16, 16, 16, 18, 24, 32, 48, 56,
-                16, 16, 18, 24, 32, 48, 56, 64,
-                16, 18, 24, 32, 48, 56, 64, 64,
-                18, 24, 32, 48, 56, 64, 64, 64,
-                24, 32, 48, 56, 64, 64, 64, 64,
-                32, 48, 56, 64, 64, 64, 64, 64,
-                48, 56, 64, 64, 64, 64, 64, 64)*/
-
         val zigzagPattern = intArrayOf(0, 1, 8, 16, 9, 2, 3, 10,
                 17, 24, 32, 25, 18, 11, 4, 5,
                 12, 19, 26, 33, 40, 48, 41, 34,
@@ -229,7 +210,7 @@ open class JpegCodec {
                 output.writeShort(0xFFE0)
                 output.writeShort(length)
                 output.writeBytes(*("JFIF" + 0.toChar()).toByteArray())
-                output.writeShort(0x0101) //version 1.01
+                output.writeShort(0x0102) //version 1.02
 
                 //Don't know if these are correct, or if they even matter
                 output.writeByte(0)
@@ -828,8 +809,5 @@ open class JpegCodec {
         }
 
 
-
-
     }
-
 }
