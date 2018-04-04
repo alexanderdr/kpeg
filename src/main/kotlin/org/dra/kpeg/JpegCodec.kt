@@ -1,9 +1,10 @@
 package org.dra.kpeg
 
-import com.sun.xml.internal.bind.v2.util.ByteArrayOutputStreamEx
+import org.dra.kpeg.util.ByteMappedObject
 import org.dra.kpeg.util.i
 import org.dra.kpeg.util.roundToByte
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.io.OutputStream
 import java.lang.Math.PI
 import java.lang.Math.cos
@@ -81,14 +82,14 @@ open class JpegCodec {
 
             val jfif = Jfif()
             jfif.addChunk(JfifApp0(width, height))
-            jfif.addChunk(QuantFrame(quantizer.matrix)) //not sure why we should put this before the frame, but whatever?
+            jfif.addChunk(QuantFrame(quantizer.matrix)) //not sure why we should put this before the frame, but it seems to be required?
             jfif.addChunk(JfifFrame(width, height))
             jfif.addChunk(HuffmanFrame(HuffmanTool.HuffmanTable(huffDiff), false))
             jfif.addChunk(HuffmanFrame(HuffmanTool.HuffmanTable(huff), true))
             jfif.addChunk(ScanFrame())
             jfif.addChunk(ThreeChannelDataFrame(lumChannel, blueChannel, redChannel, dcs, huffDiff, huff))
 
-            //org.dra.kpeg.HuffmanTool.printNodes(tree)
+            org.dra.kpeg.HuffmanTool.printNodes(huff)
 
             val output = ByteArrayOutputStream()
             jfif.writeTo(output)
@@ -301,7 +302,6 @@ open class JpegCodec {
         }
 
         class JfifFrame(val width: Int, val height: Int) : JfifBlock {
-
             init {
                 if (width > 65535 || height > 65535) {
                     throw IllegalArgumentException("Width and height must both be less than 2^16 - 1 because they are stored in an unsigned short")
@@ -631,7 +631,45 @@ open class JpegCodec {
             return output
         }
 
+        //type III DCT
+        fun dctInverse(block: BlockView<Int>): BlockView<Float> {
 
+            val w = block.width
+            val h = block.height
+            val output = BlockFloatDataView(w, h)
+
+            for (v in 0 until h) {
+                for (u in 0 until w) {
+                    var sum = 0.0F
+                    for (y in 0 until h) {
+                        for (x in 0 until w) {
+                            val ax = if (x == 0) {
+                                1 / 1.414214F
+                            } else {
+                                1F
+                            }
+                            val ay = if (y == 0) {
+                                1 / 1.414214F
+                            } else {
+                                1F
+                            }
+
+
+                            sum += (block[y, x] *
+                                    cos(((u + .5F) * x * PI) / 8) *
+                                    cos(((v + .5F) * y * PI) / 8)).toFloat() *
+                                    ax * ay
+                        }
+                    }
+
+                    output[v, u] = sum / 4f
+                }
+            }
+
+            output.applyInPlace { (it + 128) }
+
+            return output
+        }
 
         fun runEncode(data: BlockView<Int>): List<EncodeOp> {
             val pattern = zigzagPattern //zigzagMap[key] ?: throw NullPointerException()
@@ -653,7 +691,7 @@ open class JpegCodec {
 
             //start at 1, 0 should be handled by the DC coefficient
             for(i in 1 until 64) {
-                if (i >= lastNonZero) {
+                if (i > lastNonZero) { //todo: changed this
                     ops.add(EncodeOp.END_BLOCK)
                     break
                 }
@@ -681,25 +719,6 @@ open class JpegCodec {
             return ops
         }
 
-        class EncodeOp(val leadingZeroes: Int, val data: Int) {
-            fun getBytes(): Pair<Byte, Byte> {
-                //write the data, in two bytes, huffman encoded byte1: (zzzz,llll) where zzzz are leading zero bits, and 1111 are the number of data bits
-                //the second byte is purely data, which should be huffman encoded.
-
-                //This should only happen if we already have 15 leading zeroes
-
-                val (len, encData) = expandEncodeInt(data)
-
-                val lzByte = ((leadingZeroes shl 4) or len).toByte()
-
-                return lzByte to encData.roundToByte()
-            }
-
-            companion object {
-                val END_BLOCK = EncodeOp(0, 0)
-            }
-        }
-
         data class ExpandEncodedByte(val length: Int, val value: Byte)
         data class ExpandEncodedInt(val length: Int, val value: Int)
 
@@ -713,6 +732,14 @@ open class JpegCodec {
             }
 
             return ExpandEncodedInt(length, d)
+        }
+
+        fun expandDecodeInt(value: Int, length: Int): Int {
+            if(value and (0x1 shl (length - 1)) == 0) {
+                return (((1 shl length) - 1) * -1) + value
+            } else {
+                return value
+            }
         }
 
         fun expandEncodeByte(data: Byte): ExpandEncodedByte {
@@ -807,7 +834,40 @@ open class JpegCodec {
 
             return Triple(c1, c2, c3)
         }
-
-
     }
+
+    class EncodeOp(val leadingZeroes: Int, val data: Int) {
+        fun getBytes(): Pair<Byte, Byte> {
+            //write the data, in two bytes, (eventually) huffman encoded byte1: (zzzz,dddd) where zzzz are leading zero bits, and dddd is the number of data bits
+            //the second byte is purely data, which will not be huffman encoded.
+
+            val (len, encData) = expandEncodeInt(data)
+            val lzByte = ((leadingZeroes shl 4) or len).toByte()
+            return lzByte to encData.roundToByte()
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other?.javaClass != javaClass) return false
+
+            other as EncodeOp
+
+            if (leadingZeroes != other.leadingZeroes) return false
+            if (data != other.data) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = leadingZeroes
+            result = 31 * result + data
+            return result
+        }
+
+        companion object {
+            //This should only happen if we already have 15 leading zeroes
+            val END_BLOCK = EncodeOp(0, 0)
+        }
+    }
+
 }

@@ -8,7 +8,7 @@ import org.testng.annotations.Test
  */
 class ByteMappedObjectTest {
     @Test
-    fun testByteMappingWorks() {
+    fun testByteMappingWorksWithStaticFields() {
         val backing = ByteArray(18)
         val mapping = object: ByteMappedObject(backing, 0) {
             //2 bytes: App0 marker -- 0xFFE0
@@ -54,6 +54,42 @@ class ByteMappedObjectTest {
         mapping.idString = someData
 
         Assert.assertEquals(mapping.idString, someData)
+    }
+
+    @Test
+    fun testByteMappingWorksWithDynamicSizes() {
+        //actual output data from the huffman table generator
+        val data = byteArrayOf(-1,-60,0,61,16,0,2,2,1,3,3,2,3,4,5,2,5,3,5,2,0,0,1,3,2,17,18,33,4,19,5,49,34,
+                65,50,97,6,20,-127,113,35,-111,-79,-16,-95,66,21,7,51,82,98,114,-47,-78,-31,-63,36,67,99,-110,
+                -109,22,81)
+
+        val mapping = object: ByteMappedObject(data, 0) {
+            //DHT - Huffman marker 0xFFC4
+            //Length - 2 + 1 (Th, Tc) + 16 (codes of length i from 1..16) + the number of values
+            //Tc - table class, nibble, 0 for DC, 1 for AC
+            //Th - table slot, nibble, 0-3, 0 for now
+            //Li - the length of each of the 16 rows of the table
+            //Vi,j - the data
+
+            var header by bint(2)
+            var length by bint(2)
+            var tableClass by nint(4)
+            var tableSlot by nint(4)
+            var tableSizes by barr(16)
+            var leaves by barr(length - 19)
+        }
+
+        Assert.assertEquals(mapping.leaves.size, data.size - 21)
+        Assert.assertEquals(mapping.leaves[mapping.leaves.size-1], 81)
+
+        Assert.assertEquals(mapping.tableClass, 1)
+        Assert.assertEquals(mapping.tableSlot, 0)
+
+        mapping.tableClass = 3
+        mapping.tableSlot = 13
+
+        Assert.assertEquals(mapping.tableClass, 3)
+        Assert.assertEquals(mapping.tableSlot, 13)
     }
 
     @Test(expectedExceptions = arrayOf(ArrayIndexOutOfBoundsException::class))

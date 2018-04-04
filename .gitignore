@@ -6,3 +6,6 @@ build
 .gradle
 gradle/
 gradlew*
+test_data/parsed_image_lossless_troll.png
+test_data/colorful_block_reencoded.jpg
+test_data/synth_white_reencoded.jpg

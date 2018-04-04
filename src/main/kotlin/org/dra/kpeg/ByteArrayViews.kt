@@ -71,6 +71,12 @@ interface YbrView: ByteArray3View {
     var r: Byte
 }
 
+interface YuvView: ByteArray3View {
+    var y: Byte
+    var u: Byte
+    var v: Byte
+}
+
 interface ArgbView: RgbView {
     val a: Byte
 }
@@ -162,10 +168,27 @@ open class YbrDataColor(override var y: Byte, override var b: Byte, override var
 
 interface BlockView<T> {
     fun applyInPlace(func: (T) -> T) {
-
         for(y in 0 until height) {
             for (x in 0 until width) {
                 this[y, x] = func(this[y, x])
+            }
+        }
+    }
+
+    fun <U> map(func: (T) -> U): List<U> {
+        val output = mutableListOf<U>()
+        for(y in 0 until height) {
+            for (x in 0 until width) {
+                output.add(func(this[y, x]))
+            }
+        }
+        return output
+    }
+
+    fun forEachIndexed(func: (Int, Int, T) -> Unit) {
+        for(y in 0 until height) {
+            for (x in 0 until width) {
+                func(x, y, this[y, x])
             }
         }
     }
@@ -233,13 +256,11 @@ open class ArrayBlockView(val backing: ByteArray, val arrayWidth: Int, val xInde
     }
 
     override fun get(rawIndex: Int): Byte {
-        //not tested
-        return backing[rawIndex]
+        return backing[(yIndex * arrayWidth) + rawIndex]
     }
 
     override fun set(rawIndex: Int, value: Byte) {
-        //not tested
-        backing[rawIndex] = value
+        backing[(yIndex * arrayWidth) + rawIndex] = value
     }
 
     /*override fun applyInPlace(change: Byte) {
@@ -260,6 +281,18 @@ open class ArrayBlockView(val backing: ByteArray, val arrayWidth: Int, val xInde
 
     override operator fun set(row: Int, col: Int, value: Byte) {
         backing[getIndex(row, col)] = value
+    }
+
+    fun setAll(otherView: BlockView<Float>) {
+        if(width != otherView.width || height != otherView.height) {
+            throw IllegalArgumentException("Cannot copy data when the widths and heights don't match")
+        }
+
+        for(j in 0 until height) {
+            for(i in 0 until width) {
+                this[j, i] = otherView[j, i].toByte()
+            }
+        }
     }
 }
 
@@ -472,5 +505,79 @@ open class BlockByteDataView(override val width: Int, override val height: Int, 
 
     override operator fun set(row: Int, col: Int, value: Byte) {
         backing[getIndex(row, col)] = value
+    }
+}
+
+class SamplingBlockView<T>(val source: BlockView<T>, override val width: Int, override val height: Int): BlockView<T> {
+
+    val relativeWidth = width / source.width
+    val relativeHeight = height / source.height
+
+    override fun get(rawIndex: Int): T {
+        //not tested
+        return source[rawIndex / (relativeWidth * relativeHeight)]
+    }
+
+    override fun set(rawIndex: Int, value: T) {
+        //not tested
+        source[rawIndex / (relativeWidth * relativeHeight)] = value
+    }
+
+    fun getIndex(row: Int, col: Int): Int {
+        return ((row / relativeHeight) * width) / relativeWidth + col / relativeWidth
+    }
+
+    override operator fun get(row: Int, col: Int): T {
+        return source[getIndex(row, col)]
+    }
+
+    override operator fun set(row: Int, col: Int, value: T) {
+        source[getIndex(row, col)] = value
+    }
+}
+
+class CompositeBlockView<T>(val source: List<BlockView<T>>,
+                            override val width: Int,
+                            override val height: Int,
+                            val subWidth: Int,
+                            val subHeight: Int): BlockView<T> {
+
+    val blocksWide = width / subWidth
+    val blocksHigh = height / subHeight
+
+    override fun get(rawIndex: Int): T {
+        //not tested
+        val row = rawIndex / height
+        val col = rawIndex % height
+
+        return get(row, col)
+    }
+
+    override fun set(rawIndex: Int, value: T) {
+        //not tested
+        val row = rawIndex / height
+        val col = rawIndex % height
+
+        return set(row, col, value)
+    }
+
+    override operator fun get(row: Int, col: Int): T {
+        val blocksOver = col / subWidth
+        val blocksDown = row / subHeight
+
+        val subWidth = col % subWidth
+        val subHeight = row % subHeight
+
+        return source[blocksDown * blocksWide + blocksOver][subHeight, subWidth]
+    }
+
+    override operator fun set(row: Int, col: Int, value: T) {
+        val blocksOver = col / subWidth
+        val blocksDown = row / subHeight
+
+        val subWidth = col % subWidth
+        val subHeight = row % subHeight
+
+        source[blocksDown * blocksWide + blocksOver][subHeight, subWidth] = value
     }
 }

@@ -9,7 +9,7 @@ import org.testng.annotations.Test
 class ColorSpaceTest {
     @Test
     fun `color space transformations`() {
-        val argbData = ByteArray(7 * 3)
+        val argbData = ByteArray(9 * 3)
 
         //white pixel
         val white = RgbDataColor(0xFF, 0xFF, 0xFF)
@@ -19,6 +19,7 @@ class ColorSpaceTest {
         val invertibleBlue = RgbDataColor(0x00, 0x00, 0xFE)
         val neutralGray = RgbDataColor(0x80, 0x80, 0x80)
         val gammaGray = RgbDataColor(0xC0, 0xC0, 0xC0)
+        val mediumBlue = RgbDataColor(0x01, 0x00, 0x80)
 
         testRgbToYbr(white)
         testRgbToYbr(black)
@@ -36,11 +37,12 @@ class ColorSpaceTest {
         argbData.setRgbPixelColor(4, invertibleBlue)
         argbData.setRgbPixelColor(5, neutralGray)
         argbData.setRgbPixelColor(6, gammaGray) //gamma-adjusted 50% gray
+        argbData.setRgbPixelColor(7, mediumBlue)
 
         val ycbcrOutput = ColorSpace.rgbToYcbcr(argbData)
         val rgbOutput = ColorSpace.ycbcrToRgb(ycbcrOutput)
 
-        for(index in 0 until 7) {
+        for(index in 0 until 8) {
             Assert.assertEquals(RgbColor(rgbOutput, index), RgbColor(argbData, index, 3), "$index")
         }
     }

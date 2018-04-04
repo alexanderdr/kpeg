@@ -1,6 +1,9 @@
 package org.dra.kpeg
 
 import java.util.*
+import org.dra.kpeg.util.getBit
+import org.dra.kpeg.util.getBitAsOne
+import java.nio.ByteBuffer
 
 /**
  * Created by Derek Alexander
@@ -222,26 +225,17 @@ class HuffmanTool {
             return result.toIntArray()
         }
 
-        fun decode(data: IntArray, items: Int, root: ProtoNode): ByteArray {
-            val output = ByteArray(items)
-
-            var bit = 0
-            var writtenItems = 0
-
+        //Returns value, bits read
+        fun decodeOneItem(data: IntArray, bitOffset: Int, root: ProtoNode): Pair<Byte, Int> {
             var current = root
+            var bit = bitOffset
 
-            fun IntArray.getBit(index: Int): Int {
-                val element = index / 32
-                val item = 31 - (index % 32)
-                return this[element] and (1 shl item)
-            }
-
-            while(writtenItems < items) {
-                if(current is InnerNode) {
+            while(true) {
+                if (current is InnerNode) {
                     if (data.getBit(bit) == 0) {
                         current = current.left
                     } else {
-                        if(current.right != null) {
+                        if (current.right != null) {
                             current = current.right!!
                         } else {
                             throw IllegalStateException("Attempted to read right node when there is none")
@@ -252,11 +246,53 @@ class HuffmanTool {
                     throw UnknownError("Unknown current node type when decoding from Huffman tree, expecting InnerNode")
                 }
 
-                if(current is LeafNode) {
-                    output[writtenItems] = current.value
-                    writtenItems++
-                    current = root
+                if (current is LeafNode) {
+                    return current.value to bit
                 }
+            }
+        }
+
+        fun decodeOneItem(data: ByteBuffer, bitOffset: Int, root: ProtoNode): Pair<Byte, Int> {
+            var current = root
+            var bit = bitOffset
+
+            if (current is LeafNode) {
+                return current.value to bit + 1
+            }
+
+            while(true) {
+                if (current is InnerNode) {
+                    if (data.getBitAsOne(bit) == 0) {
+                        current = current.left
+                    } else {
+                        if (current.right != null) {
+                            current = current.right!!
+                        } else {
+                            throw IllegalStateException("Attempted to read right node when there is none bitIndex: $bit")
+                        }
+                    }
+                    bit++
+                } else {
+                    throw UnknownError("Unknown current node type when decoding from Huffman tree, expecting InnerNode")
+                }
+
+                if (current is LeafNode) {
+                    return current.value to bit
+                }
+            }
+        }
+
+        fun decode(data: IntArray, items: Int, root: ProtoNode): ByteArray {
+            val output = ByteArray(items)
+
+            var bit = 0
+            var writtenItems = 0
+
+            while(writtenItems < items) {
+                val (item, currentBit) = decodeOneItem(data, bit, root)
+                bit = currentBit
+                output[writtenItems] = item
+                writtenItems++
             }
 
             return output
@@ -380,27 +416,37 @@ class HuffmanTool {
         class LeafNode(val value: Byte): ProtoNode()
     }
 
-    class HuffmanTable(val root: ProtoNode) {
-        val table = arrayListOf<ArrayList<Byte>?>()
+    class HuffmanTable(data: ArrayList<ArrayList<Byte>?>) {
+        val table = data
+        var tree: ProtoNode? = null
 
-        init {
+        constructor(root: ProtoNode): this(ArrayList<ArrayList<Byte>?>()) {
             for(i in 0..16) {
                 table.add(arrayListOf<Byte>())
             }
-            populateTable()
+            populateTable(root)
         }
 
         //build tree from this mess, bottom up
         fun createTree(): ProtoNode {
+            val temp = tree
+            if(temp != null) {
+                return temp
+            }
+
             var lowerList = arrayListOf<ProtoNode>()
             var nextList = arrayListOf<ProtoNode>()
             for(i in table.size - 1 downTo 0) {
-                val list = table[i] ?: continue
 
-                for(j in 0 until list.size) {
-                    nextList.add(LeafNode(list[j]))
+                val list = table[i]
+
+                if(list != null) {
+                    for (j in 0 until list.size) {
+                        nextList.add(LeafNode(list[j]))
+                    }
                 }
 
+                //doing this second means we get the inner nodes on the right which is the correct order
                 while(lowerList.size > 0){
                     //make inner nodes out of them, adding them to the nextList
 
@@ -413,10 +459,20 @@ class HuffmanTool {
                 nextList = arrayListOf<ProtoNode>()
             }
 
-            return lowerList[0]
+
+            val res = if(lowerList.size > 1) {
+                if(lowerList.size > 2) {
+                    throw IllegalStateException("Unexpected internal state when building Huffman tree")
+                }
+                InnerNode(lowerList[0], lowerList[1])
+            } else {
+                lowerList[0]
+            }
+            tree = res
+            return res
         }
 
-        fun populateTable() {
+        fun populateTable(root: ProtoNode) {
             var curLevel = arrayListOf(root)
             var next = arrayListOf<ProtoNode>()
 

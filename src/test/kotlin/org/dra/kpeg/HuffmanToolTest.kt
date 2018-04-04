@@ -1,9 +1,13 @@
 package org.dra.kpeg
 
+import org.dra.kpeg.HuffmanTool.Companion.buildJpegFriendlyTree
 import org.dra.kpeg.util.toBinaryString
 import org.testng.Assert
 import org.testng.Assert.assertEquals
+import org.testng.Assert.assertTrue
 import org.testng.annotations.Test
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
 
 /**
  * Created by Derek Alexander
@@ -56,6 +60,39 @@ class HuffmanToolTest {
         val bytes = testString.toByteArray()
         val tree = HuffmanTool.buildJpegFriendlyTree(bytes)
         assertEquals(tree.fold(0) { curValue, node -> if(node is HuffmanTool.Companion.LeafNode) { curValue + 1 } else { curValue }}, 17)
+    }
+
+    @Test
+    fun testDataLoad() {
+        val tree = buildJpegFriendlyTree(byteArrayOf(0, 12, 3, 1, 0, 2, 17, 3, 17, 0, 63, 0))
+        HuffmanTool.printNodes(tree)
+    }
+
+    @Test
+    fun testSerialization() {
+
+        val testString = "The rain in Spain falls mainly in the plain."
+        val bytes = testString.toByteArray()
+        val tree = HuffmanTool.buildJpegFriendlyTree(bytes)
+
+        val output = JpegCodec.Companion.HuffmanFrame(HuffmanTool.HuffmanTable(tree))
+
+        val os = ByteArrayOutputStream()
+
+        output.writeTo(os)
+
+        val outputData = os.toByteArray()
+        val stream = ByteArrayInputStream(outputData)
+
+        //read the first two table indicator bytes
+        stream.read()
+        stream.read()
+
+        val inputFrame = JfifHuffmanWrapper(stream).data
+        val parsedTree = inputFrame.calculateTable().createTree()
+
+        assertTrue(HuffmanTool.treesEqual(tree, parsedTree))
+
     }
 
 }

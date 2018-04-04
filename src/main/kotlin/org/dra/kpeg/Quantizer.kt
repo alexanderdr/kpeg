@@ -38,10 +38,33 @@ open class Quantizer(val matrix: IntArray) {
                 if(y != 0 || x != 0) {
                     val res = (block[y, x] / matrix[y * w + x]).roundToInt()
                     if(res > 255 || res < -255) {
-                        println("This could be a problem $res outside of the encodable range of -255 to 255")
+                        println("This could be a problem quantizing, $res outside of the encodable range of -255 to 255 $y,$x")
                     }
                 }
                 output[y, x] = (block[y, x] / matrix[y * w + x]).roundToInt()
+            }
+        }
+
+        return output
+    }
+
+    fun deQuantize(block: BlockView<Int>): BlockView<Int> {
+        val w = block.width
+        val h = block.height
+
+        //We need to hold on to our larger values a little bit longer here because we won't necessarily
+        //divide by a large enough number at index 0 to fit into a byte (or some of the other indices as well)
+        val output = BlockIntDataView(w, h)
+
+        for (x in 0 until w) {
+            for (y in 0 until h) {
+                if(y != 0 && x != 0) {
+                    val res = (block[y, x] * matrix[y * w + x])
+                    if(res > 255 || res < -255) {
+                        println("This could be a problem dequantizing $res outside of normal range of -255 to 255 $y,$x")
+                    }
+                }
+                output[y, x] = (block[y, x] * matrix[y * w + x])
             }
         }
 
