@@ -1,5 +1,6 @@
 package org.dra.kpeg
 
+import org.dra.kpeg.util.clamp
 import org.dra.kpeg.util.i
 import org.dra.kpeg.util.roundToByte
 import org.dra.kpeg.util.roundToInt
@@ -27,9 +28,9 @@ class ColorSpace {
 
         fun rgbToYcbcr(input: RgbView, output: YbrView) {
             with(input) {
-                output.y = (r.i * .299F + g.i * .587F + b.i * .114F).roundToByte()
-                output.b = (128 - (r.i * .168736F + g.i * .331264F - b.i * .5F)).roundToByte()
-                output.r = (128 - (r.i * -.5F + g.i * .418688F + b.i * .081312F)).roundToByte()
+                output.y = Math.min(255f, (r.i * .299F + g.i * .587F + b.i * .114F)).roundToByte()
+                output.b = Math.min(255f, (128 - (r.i * .168736F + g.i * .331264F - b.i * .5F))).roundToByte()
+                output.r = Math.min(255f, (128 - (r.i * -.5F + g.i * .418688F + b.i * .081312F))).roundToByte()
             }
         }
 
@@ -84,10 +85,6 @@ class ColorSpace {
             }
         }
 
-        fun clamp(lowerBound: Float, upperBound: Float, input: Float): Float {
-            return Math.max(lowerBound, Math.min(upperBound, input))
-        }
-
         fun ycbcrToRgb(y: Float, b: Float, r: Float): Int {
 
             //not sure if clamping is what we should do here...
@@ -95,9 +92,9 @@ class ColorSpace {
             val cb = b//clamp(0f, 255f, b)
             val cr = r//clamp(0f, 255f, r)
 
-            val rawR = Math.round(clamp(0f, 255f, cy + 1.402f * (cr - 128))) and 0xFF
-            val rawG = Math.round(clamp(0f, 255f, cy - 0.344136f * (cb - 128) - 0.714136f * (cr - 128))) and 0xFF
-            val rawB = Math.round(clamp(0f, 255f, cy + 1.772F * (cb - 128))) and 0xFF
+            val rawR = Math.round((cy + 1.402f * (cr - 128)).clamp(0f, 255f)) and 0xFF
+            val rawG = Math.round((cy - 0.344136f * (cb - 128) - 0.714136f * (cr - 128)).clamp(0f, 255f)) and 0xFF
+            val rawB = Math.round((cy + 1.772F * (cb - 128)).clamp(0f, 255f)) and 0xFF
 
             return 0xFF000000.toInt() or (rawR shl 16) or (rawG shl 8) or rawB
         }
@@ -107,11 +104,11 @@ class ColorSpace {
             //not sure if clamping is what we should do here...
             val cy = Math.round(y)//clamp(0f, 255f, y)
             val cb = Math.round(b)//clamp(0f, 255f, b)
-            val cr = Math.round(r)//clamp(0f, 255f, r)
+            val cr = r//clamp(0f, 255f, r)
 
-            val rawR = Math.round(clamp(0f, 255f, cy + 1.402f * (cr - 128))) and 0xFF
-            val rawG = Math.round(clamp(0f, 255f, cy - 0.344136f * (cb - 128) - 0.714136f * (cr - 128))) and 0xFF
-            val rawB = Math.round(clamp(0f, 255f, cy + 1.772F * (cb - 128))) and 0xFF
+            val rawR = Math.round((cy + 1.402f * (cr - 128)).clamp(0f, 255f)) and 0xFF
+            val rawG = Math.round((cy - 0.344136f * (cb - 128) - 0.714136f * (cr - 128)).clamp(0f, 255f)) and 0xFF
+            val rawB = Math.round((cy + 1.772F * (cb - 128)).clamp(0f, 255f)) and 0xFF
 
             return 0xFF000000.toInt() or (rawR shl 16) or (rawG shl 8) or rawB
         }

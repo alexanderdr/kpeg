@@ -29,8 +29,11 @@ class JfifParserTest {
         //compareOutputOfFile("./test_data/colorful_block_reencoded.jpg") //this is almost perfect, each channel is +/- 1 compared to ImageIO
 
         //compareOutputOfFile("./test_data/white_block_with_blue.jpg") //todo: this has a math error that increases the farther to the right in the image
+        //compareOutputOfFile("./test_data/chroma_sampling_test.jpg")
+        //compareOutputOfFile("./test_data/solid_green.jpg")
+        //compareOutputOfFile("./test_data/larger_colorful_block.jpg")
 
-        compareOutputOfFile("./test_data/testDataOdd.jpg") //todo: need to correctly read stuffed 0xFF bytes
+        compareOutputOfFile("./test_data/testDataOdd.jpg")
     }
 
     fun compareOutputOfFile(path: String) {
@@ -53,13 +56,16 @@ class JfifParserTest {
         val kgreen = res.map { it and 0x0000FF00 ushr 8 }
         val kblue = res.map { it and 0x000000FF }
 
-        val rdiff = jred.zip(kred).map { (l, r) -> Math.abs(l - r) }
-        val gdiff = jgreen.zip(kgreen).map { (l, r) -> Math.abs(l - r) }
-        val bdiff = jblue.zip(kblue).map { (l, r) -> Math.abs(l - r) }
+        val rdiff = jred.zip(kred).map { (l, r) -> (l - r) }
+        val gdiff = jgreen.zip(kgreen).map { (l, r) -> (l - r) }
+        val bdiff = jblue.zip(kblue).map { (l, r) -> (l - r) }
 
-        println(rdiff.zip(gdiff).zip(bdiff).map { (p,b) ->
+        println(rdiff.zip(gdiff).zip(bdiff)
+                .filterIndexed { index, item -> index % 16 == 0 || index % 16 == 15 }
+                .map { (p,b) ->
             val (r, g) = p
-            Integer.toHexString(0xFF000000.toInt() or (r shl 16) or (g shl 8) or b )
+            //Integer.toHexString(0xFF000000.toInt() or (r shl 16) or (g shl 8) or b )
+            "($r,$g,$b)"
         }.joinToString(","))
 
         val manualImage = BufferedImage(javaImage.width, javaImage.height, BufferedImage.TYPE_INT_ARGB)

@@ -1,5 +1,6 @@
 package org.dra.kpeg
 
+import org.dra.kpeg.util.i
 import org.testng.Assert
 import org.testng.annotations.Test
 
@@ -45,6 +46,58 @@ class ColorSpaceTest {
         for(index in 0 until 8) {
             Assert.assertEquals(RgbColor(rgbOutput, index), RgbColor(argbData, index, 3), "$index")
         }
+    }
+
+    @Test
+    fun `exhaustive color space search`() {
+        var rgb = RgbDataColor(0, 0, 0)
+
+        val ybrOutput: YbrView = YbrDataColor(0, 0, 0)
+        val rgbOutput: RgbView = RgbDataColor(0, 0, 0)
+
+        for(i in 0 until (0x1000000 - 1)) {
+            val red = (0xFF0000 and i) ushr 16
+            val green = (0xFF00 and i) ushr 8
+            val blue = 0xFF and i
+
+            rgb = RgbDataColor(red, green, blue)
+
+            ColorSpace.rgbToYcbcr(rgb, ybrOutput)
+            ColorSpace.ycbcrToRgb(ybrOutput, rgbOutput)
+
+            val or = rgbOutput.r.i - rgb.r.i
+            val og = rgbOutput.g.i - rgb.g.i
+            val ob = rgbOutput.b.i - rgb.b.i
+            if(Math.abs(or) > 1 || Math.abs(og) > 1 || Math.abs(ob) > 1) {
+                println("$rgb \n produces a delta of $or $og $ob")
+            }
+            //println(i)
+        }
+
+        //Assert.assertEquals(rgbOutput, rgb)
+    }
+
+    @Test
+    fun `pure blue works`() {
+        var rgb = RgbDataColor(0, 0, 0)
+
+        val ybrOutput: YbrView = YbrDataColor(0, 0, 0)
+        val rgbOutput: RgbView = RgbDataColor(0, 0, 0)
+
+        rgb = RgbDataColor(0, 0, 255)
+
+        ColorSpace.rgbToYcbcr(rgb, ybrOutput)
+        ColorSpace.ycbcrToRgb(ybrOutput, rgbOutput)
+
+        val or = rgbOutput.r.i - rgb.r.i
+        val og = rgbOutput.g.i - rgb.g.i
+        val ob = rgbOutput.b.i - rgb.b.i
+        if(Math.abs(or) > 1 || Math.abs(og) > 1 || Math.abs(ob) > 1) {
+            println("$rgb \n produces a delta of $or $og $ob")
+        }
+        //println(i)
+
+        //Assert.assertEquals(rgbOutput, rgb)
     }
 
     fun testRgbToYbr(rgb: RgbView) {

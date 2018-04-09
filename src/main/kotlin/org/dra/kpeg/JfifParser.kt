@@ -262,8 +262,9 @@ class JfifParser {
                             //shift up by 128 to invert the 128 shift down in encoding... this is handled by dctInverse
 
                             //blockFloatDataView...
-                            val outputBlock = ArrayBlockView(currentRes, blocksWide * 8, i * 8, j * 8, 8, 8)
+                            val outputBlock = ArrayBlockView(ByteArray(64, {0}), 8, 0, 0, 8, 8)
                             outputBlock.setAll(inverted) //this currently is creating problems due to rounding errors
+                            val reDct = JpegCodec.discreteCosineTransform(outputBlock)
 
                             outputBlocks.add(inverted)
                         }
@@ -276,13 +277,14 @@ class JfifParser {
 
                     if (blocksWide < maxWidth || blocksHigh < maxHeight) {
                         //todo: this only works for ratios like 4:2:0 where both of the components are square
-                        organizedChannels.add(SamplingBlockView(outputBlocks[0], maxWidth * 8, maxHeight * 8))
+                        organizedChannels.add(BilinearBlockView(outputBlocks[0], 16, 16))
+                        //organizedChannels.add(SamplingBlockView(outputBlocks[0], maxWidth * 8, maxHeight * 8))
                     } else {
                         organizedChannels.add(CompositeBlockView(outputBlocks, blocksWide * 8, blocksHigh * 8, 8, 8))
                     }
                 }
 
-                //todo: this needs to handle offsets within an MCU so it changes the right items
+                //todo: upsample chrominance, horizontal then vertical???  Only reference to it is in hierarchical decoding :x
                 val xoffset = (mcuIndex % mcusWide) * mcuWidth
                 val yoffset = (mcuIndex / mcusWide) * mcuHeight
                 var cy = 0
@@ -291,8 +293,14 @@ class JfifParser {
                     for(x in xoffset until Math.min(frame.width, xoffset + mcuWidth)) {
                         val lum = organizedChannels[0][cy, cx]
                         val b = organizedChannels[1][cy, cx]
+                        val b2 = organizedChannels[1][cy, Math.max(0, cx - 1)]
+                        //val b3 = organizedChannels[1][Math.min(15, cy + 1), cx]
                         val r = organizedChannels[2][cy, cx]
-                        val combinedColor = ColorSpace.ycbcrToRgb(lum, b, r)
+                        val r2 = organizedChannels[2][cy, Math.max(0, cx - 1)]
+                        //val r3 = organizedChannels[2][Math.min(15, cy + 1), cx]
+                        val lb = b // (b + b2 + b3) / 3
+                        val lr = r //(r + r2 + r3) / 3
+                        val combinedColor = ColorSpace.ycbcrToRgb(lum, lb, lr)
                         output[y, x] = combinedColor
                         cx++
                     }
@@ -301,6 +309,14 @@ class JfifParser {
             }
 
             return output
+        }
+
+        private fun SamplingBlockView<Float>.upsample() {
+            val output = BlockFloatDataView(width, height)
+            for(y in 1 until height step 2) {
+                for(x in 1 until width step 2) {
+                }
+            }
         }
 
         private fun readEncodeOp(buffer: ByteBuffer, bitIndex: Int, currentComponent: ChannelData, isDc: Boolean): Pair<JpegCodec.EncodeOp, Int> {
