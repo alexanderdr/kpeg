@@ -9,9 +9,9 @@ import java.util.*
  */
 
 class ChannelData(backing: ByteArray, offset: Int): ByteMappedObject(backing, offset) {
-    val componentSelector by bint(1)
-    val dcTableId by nint(4)
-    val acTableId by nint(4)
+    val componentSelector by bytesAsInt(1)
+    val dcTableId by bits(4)
+    val acTableId by bits(4)
 }
 
 class JfifScanTable(backing: ByteArray): ByteMappedObject(backing, 0) {
@@ -26,13 +26,13 @@ class JfifScanTable(backing: ByteArray): ByteMappedObject(backing, 0) {
     //Ah - Successive approximation bit position high, 0?
     //Al - Successive approximation bit position low, 0?
 
-    val length by bint(2)
-    val componentCount by bint(1)
-    val interleavedComponents by bobj<ChannelData>(componentCount, { back, offset -> ChannelData(back, offset) })
-    val startOfSelector by bint(1)
-    val endOfSelector by bint(1)
-    val bitPositionHigh by nint(4)
-    val bitPositionLow by nint(4)
+    val length by bytesAsInt(2)
+    val componentCount by bytesAsInt(1)
+    val interleavedComponents by byteObject<ChannelData>(componentCount, { back, offset -> ChannelData(back, offset) })
+    val startOfSelector by bytesAsInt(1)
+    val endOfSelector by bytesAsInt(1)
+    val bitPositionHigh by bits(4)
+    val bitPositionLow by bits(4)
 }
 
 class JfifScanWrapper(source: InputStream): StreamWrapper<JfifScanTable>(source, { JfifScanTable(it) })
@@ -45,11 +45,11 @@ class JfifHuffmanTable(backing: ByteArray): ByteMappedObject(backing, 0){
     //Li - the length of each of the 16 rows of the table
     //Vi,j - the data
 
-    val length by bint(2)
-    val tableType by nint(4)
-    val tableSlot by nint(4)
-    val lengths by barr(16)
-    val tableData by barr( lengths.sum() )
+    val length by bytesAsInt(2)
+    val tableType by bits(4)
+    val tableSlot by bits(4)
+    val lengths by byteArray(16)
+    val tableData by byteArray( lengths.sum() )
 
     fun calculateTable(): HuffmanTool.HuffmanTable {
         val data = arrayListOf<ArrayList<Byte>?>()
@@ -76,8 +76,8 @@ class JfifHuffmanTable(backing: ByteArray): ByteMappedObject(backing, 0){
 class JfifHuffmanWrapper(source: InputStream): StreamWrapper<JfifHuffmanTable>(source, { JfifHuffmanTable(it) })
 
 class UnknownHeaderTable(backing: ByteArray): ByteMappedObject(backing, 0) {
-    val length by bint(2)
-    val someData by barr(length - 2)
+    val length by bytesAsInt(2)
+    val someData by byteArray(length - 2)
 }
 
 class UnknownHeaderWrapper(source: InputStream): StreamWrapper<UnknownHeaderTable>(source, { UnknownHeaderTable(it) })
@@ -89,28 +89,28 @@ class JfifQuantizationTable(backing: ByteArray): ByteMappedObject(backing, 0){
     //Tq - Quant table identifier, nibble, always 0 for now
     //Qk - Element k of the table (in zig-zag order)
 
-    val length by bint(2)
-    val precision by nint(4)
-    val identifier by nint(4)
-    val table by barr(64)
+    val length by bytesAsInt(2)
+    val precision by bits(4)
+    val identifier by bits(4)
+    val table by byteArray(64)
 }
 
 class JfifQuantizationWrapper(source: InputStream): StreamWrapper<JfifQuantizationTable>(source, { JfifQuantizationTable(it) })
 
 class FrameChannel(val backing: ByteArray, val offset: Int): ByteMappedObject(backing, offset) {
-    val id by bint(1)
-    val horizontalSamplingFactor by nint(4)
-    val verticalSamplingFactor by nint(4)
-    val quantizationTableId by bint(1)
+    val id by bytesAsInt(1)
+    val horizontalSamplingFactor by bits(4)
+    val verticalSamplingFactor by bits(4)
+    val quantizationTableId by bytesAsInt(1)
 }
 
 class JfifFrameTable(backing: ByteArray): ByteMappedObject(backing, 0){
-    val length by bint(2)
-    val bitPrecision by bint(1)
-    val height by bint(2)
-    val width by bint(2)
-    val componentCount by bint(1)
-    val channels by bobj<FrameChannel>(componentCount, { back, offset -> FrameChannel(back, offset) })
+    val length by bytesAsInt(2)
+    val bitPrecision by bytesAsInt(1)
+    val height by bytesAsInt(2)
+    val width by bytesAsInt(2)
+    val componentCount by bytesAsInt(1)
+    val channels by byteObject<FrameChannel>(componentCount, { back, offset -> FrameChannel(back, offset) })
 }
 
 class JfifFrameWrapper(source: InputStream): StreamWrapper<JfifFrameTable> (source, { JfifFrameTable(it) })

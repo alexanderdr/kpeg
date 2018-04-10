@@ -25,7 +25,7 @@ interface ArrayBackedData {
     val startIndex: Int
     val data: ByteArray
 
-    fun bint(size: Int): AbdDelegateInt {
+    fun bytesAsInt(size: Int): AbdDelegateInt {
         if(nextBits != 0) {
             throw IllegalStateException("Byte data which is not fully aligned to the 0th bit is not currently supported")
         }
@@ -36,7 +36,7 @@ interface ArrayBackedData {
     }
 
     //note this is unsafe for objects which cross byte boundaries
-    fun nint(size: Int): AbdDelegateIntBits {
+    fun bits(size: Int): AbdDelegateIntBits {
         val res = AbdDelegateIntBits(data, startIndex + nextIndex, nextBits, size)
         nextBits += size
         if(nextBits >= 8) {
@@ -49,7 +49,7 @@ interface ArrayBackedData {
         return res
     }
 
-    fun barr(size: Int): AbdDelegateBytes {
+    fun byteArray(size: Int): AbdDelegateBytes {
         if(nextBits != 0) {
             throw IllegalStateException("Byte data which is not fully aligned to the 0th bit is not currently supported")
         }
@@ -59,7 +59,7 @@ interface ArrayBackedData {
         return res
     }
 
-    fun <T: ArrayBackedData> bobj(count: Int, creator: (ByteArray, Int) -> T): AbdDelegateObjArray<T> {
+    fun <T: ArrayBackedData> byteObject(count: Int, creator: (ByteArray, Int) -> T): AbdDelegateObjArray<T> {
         if(nextBits != 0) {
             throw IllegalStateException("Byte data which is not fully aligned to the 0th bit is not currently supported")
         }

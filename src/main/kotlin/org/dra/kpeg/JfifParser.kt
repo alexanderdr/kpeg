@@ -208,6 +208,8 @@ class JfifParser {
 
             val numMcus = calculateMcus() //mcusWide * mcusHigh
 
+            val mcus = mutableListOf<List<BlockView<Float>>>()
+
             for(mcuIndex in 0 until numMcus) {
 
                 val organizedChannels = mutableListOf<BlockView<Float>>()
@@ -261,11 +263,6 @@ class JfifParser {
 
                             //shift up by 128 to invert the 128 shift down in encoding... this is handled by dctInverse
 
-                            //blockFloatDataView...
-                            val outputBlock = ArrayBlockView(ByteArray(64, {0}), 8, 0, 0, 8, 8)
-                            outputBlock.setAll(inverted) //this currently is creating problems due to rounding errors
-                            val reDct = JpegCodec.discreteCosineTransform(outputBlock)
-
                             outputBlocks.add(inverted)
                         }
                     }
@@ -273,10 +270,7 @@ class JfifParser {
                     opIndicies[channelIndex] = opIndex
                     currentComponent = (currentComponent + 1) % scan.componentCount
 
-                    //todo: all of the blocks should be floats up through here, at the end of each MCU we should do the color transformation for each output block
-
                     if (blocksWide < maxWidth || blocksHigh < maxHeight) {
-                        //todo: this only works for ratios like 4:2:0 where both of the components are square
                         organizedChannels.add(BilinearBlockView(outputBlocks[0], 16, 16))
                         //organizedChannels.add(SamplingBlockView(outputBlocks[0], maxWidth * 8, maxHeight * 8))
                     } else {
@@ -284,23 +278,21 @@ class JfifParser {
                     }
                 }
 
-                //todo: upsample chrominance, horizontal then vertical???  Only reference to it is in hierarchical decoding :x
+                mcus.add(organizedChannels)
+            }
+
+            for(mcuIndex in 0 until numMcus) {
+                val organizedChannels = mcus[mcuIndex]
                 val xoffset = (mcuIndex % mcusWide) * mcuWidth
                 val yoffset = (mcuIndex / mcusWide) * mcuHeight
                 var cy = 0
-                for(y in yoffset until Math.min(frame.height, yoffset + mcuHeight)) {
+                for (y in yoffset until Math.min(frame.height, yoffset + mcuHeight)) {
                     var cx = 0
-                    for(x in xoffset until Math.min(frame.width, xoffset + mcuWidth)) {
+                    for (x in xoffset until Math.min(frame.width, xoffset + mcuWidth)) {
                         val lum = organizedChannels[0][cy, cx]
                         val b = organizedChannels[1][cy, cx]
-                        val b2 = organizedChannels[1][cy, Math.max(0, cx - 1)]
-                        //val b3 = organizedChannels[1][Math.min(15, cy + 1), cx]
                         val r = organizedChannels[2][cy, cx]
-                        val r2 = organizedChannels[2][cy, Math.max(0, cx - 1)]
-                        //val r3 = organizedChannels[2][Math.min(15, cy + 1), cx]
-                        val lb = b // (b + b2 + b3) / 3
-                        val lr = r //(r + r2 + r3) / 3
-                        val combinedColor = ColorSpace.ycbcrToRgb(lum, lb, lr)
+                        val combinedColor = ColorSpace.ycbcrToRgb(lum, b, r)
                         output[y, x] = combinedColor
                         cx++
                     }

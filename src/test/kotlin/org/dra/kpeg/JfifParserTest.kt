@@ -64,7 +64,6 @@ class JfifParserTest {
                 .filterIndexed { index, item -> index % 16 == 0 || index % 16 == 15 }
                 .map { (p,b) ->
             val (r, g) = p
-            //Integer.toHexString(0xFF000000.toInt() or (r shl 16) or (g shl 8) or b )
             "($r,$g,$b)"
         }.joinToString(","))
 
@@ -74,7 +73,8 @@ class JfifParserTest {
             manualImage.setRGB(x, y, data)
         }
 
-        ImageIO.write(manualImage,"png",File("./test_data/parsed_image_lossless.png").outputStream())
+        ImageIO.write(manualImage, "png", File("./test_data/parsed_image_lossless.png").outputStream())
+        ImageIO.write(javaImage, "png", File("./test_data/jio_image_lossless.png").outputStream())
 
         Assert.assertTrue(arraysEqual(rawData.toIntArray(), javaData))
     }

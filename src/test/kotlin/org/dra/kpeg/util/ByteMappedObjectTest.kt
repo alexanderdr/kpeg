@@ -22,15 +22,15 @@ class ByteMappedObjectTest {
             //1 byte: horizontal pixel count of embedded RGB thumbnail, may be 0
             //1 byte: vertical pixel count of embedded RGB thumbnail, may be 0
 
-            var header by bint(2)
-            var length by bint(2)
-            var idString by barr(5)
-            var version by bint(2)
-            var density by bint(1)
-            var horizontalDensity by bint(2)
-            var verticalDensity by bint(2)
-            var thumbnailWidth by bint(1)
-            var thumbnailHeight by bint(1)
+            var header by bytesAsInt(2)
+            var length by bytesAsInt(2)
+            var idString by byteArray(5)
+            var version by bytesAsInt(2)
+            var density by bytesAsInt(1)
+            var horizontalDensity by bytesAsInt(2)
+            var verticalDensity by bytesAsInt(2)
+            var thumbnailWidth by bytesAsInt(1)
+            var thumbnailHeight by bytesAsInt(1)
 
             init {
                 length = nextIndex
@@ -71,12 +71,12 @@ class ByteMappedObjectTest {
             //Li - the length of each of the 16 rows of the table
             //Vi,j - the data
 
-            var header by bint(2)
-            var length by bint(2)
-            var tableClass by nint(4)
-            var tableSlot by nint(4)
-            var tableSizes by barr(16)
-            var leaves by barr(length - 19)
+            var header by bytesAsInt(2)
+            var length by bytesAsInt(2)
+            var tableClass by bits(4)
+            var tableSlot by bits(4)
+            var tableSizes by byteArray(16)
+            var leaves by byteArray(length - 19)
         }
 
         Assert.assertEquals(mapping.leaves.size, data.size - 21)
@@ -96,8 +96,8 @@ class ByteMappedObjectTest {
     fun testArrayOutOfBounds() {
         val backing = ByteArray(2)
         val mapping = object: ByteMappedObject(backing, 0) {
-            var header by bint(2)
-            var length by bint(2)
+            var header by bytesAsInt(2)
+            var length by bytesAsInt(2)
         }
     }
 }
