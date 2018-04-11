@@ -73,8 +73,8 @@ class ByteMappedObjectTest {
 
             var header by bytesAsInt(2)
             var length by bytesAsInt(2)
-            var tableClass by bits(4)
-            var tableSlot by bits(4)
+            var tableClass by bitsAsInt(4)
+            var tableSlot by bitsAsInt(4)
             var tableSizes by byteArray(16)
             var leaves by byteArray(length - 19)
         }

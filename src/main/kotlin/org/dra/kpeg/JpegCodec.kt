@@ -31,6 +31,7 @@ open class JpegCodec {
         val zigzagMap = mutableMapOf<Int, IntArray>((8 shl 4) or 8 to zigzagPattern)
 
         //bytes in ARGB format
+        @JvmStatic
         fun encodeColors(bytes: ByteArray, width: Int, height: Int, quantizer: Quantizer = Quantizer.DEFAULT): ByteArray {
             /*
          * JPEG encoding, as described by Wikipedia

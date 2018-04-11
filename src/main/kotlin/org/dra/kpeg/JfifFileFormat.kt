@@ -8,10 +8,49 @@ import java.util.*
  * Created by Dar on 7/30/2017.
  */
 
+class JfifHeaderTableWrapper(source: InputStream): StreamWrapper<AppHeaderTable> (source, { AppHeaderTable(it) })
+
+class AppHeaderTable(backing: ByteArray): ByteMappedObject(backing, 0) {
+    //2 bytes: App0 marker (already read)
+    //~~~~~~~~
+    //2 bytes: short containing the length (including these two bytes)
+    //5 bytes: identifier string-- JFIF\0 (baseline) or JFXX\0 (extension)
+    //2 bytes: JFIF version.  First byte major version, second byte minor version
+    //1 bytes: density units, 0: no density information, 1: pixels per inch, 2: pixels per cm
+    //2 bytes: horizontal pixel density, must be > 0
+    //2 bytes: vertical pixel density, must be > 0
+    //1 byte: horizontal pixel count of embedded RGB thumbnail, may be 0
+    //1 byte: vertical pixel count of embedded RGB thumbnail, may be 0
+    //more bytes: embedded thumbnail RGB data
+    //It's a minor miracle there aren't more buffer overflow attacks against image formats
+
+    val length by bytesAsInt(2)
+    val identifierString by byteArray(5)
+    val jfifVersion by byteArray(2)
+    val densityUnits by bytesAsInt(1)
+    val horizontalDensity by bytesAsInt(2)
+    val verticalDensity by bytesAsInt(2)
+    val thumbnailWidth by bytesAsInt(1)
+    val thumbnailHeight by bytesAsInt(1)
+    val thumbnailData = byteArray(length - 16) //16 total bytes from the other parts
+
+    /*
+    val idString: String = "UNKN" + 0.toChar(),
+                     val majorVersion: Int = 0,
+                     val minorVersion: Int = 0,
+                     val densityCode: DensityType = DensityType.RAW,
+                     val horizontalDensity: Int = 1,
+                     val verticalDensity: Int = 1,
+                     val thumbnailWidth: Int = 0,
+                     val thumbnailHeight: Int = 0,
+                     val thumbnailData: ByteArray = kotlin.ByteArray(0)
+     */
+}
+
 class ChannelData(backing: ByteArray, offset: Int): ByteMappedObject(backing, offset) {
     val componentSelector by bytesAsInt(1)
-    val dcTableId by bits(4)
-    val acTableId by bits(4)
+    val dcTableId by bitsAsInt(4)
+    val acTableId by bitsAsInt(4)
 }
 
 class JfifScanTable(backing: ByteArray): ByteMappedObject(backing, 0) {
@@ -31,8 +70,8 @@ class JfifScanTable(backing: ByteArray): ByteMappedObject(backing, 0) {
     val interleavedComponents by byteObject<ChannelData>(componentCount, { back, offset -> ChannelData(back, offset) })
     val startOfSelector by bytesAsInt(1)
     val endOfSelector by bytesAsInt(1)
-    val bitPositionHigh by bits(4)
-    val bitPositionLow by bits(4)
+    val bitPositionHigh by bitsAsInt(4)
+    val bitPositionLow by bitsAsInt(4)
 }
 
 class JfifScanWrapper(source: InputStream): StreamWrapper<JfifScanTable>(source, { JfifScanTable(it) })
@@ -46,8 +85,8 @@ class JfifHuffmanTable(backing: ByteArray): ByteMappedObject(backing, 0){
     //Vi,j - the data
 
     val length by bytesAsInt(2)
-    val tableType by bits(4)
-    val tableSlot by bits(4)
+    val tableType by bitsAsInt(4)
+    val tableSlot by bitsAsInt(4)
     val lengths by byteArray(16)
     val tableData by byteArray( lengths.sum() )
 
@@ -90,8 +129,8 @@ class JfifQuantizationTable(backing: ByteArray): ByteMappedObject(backing, 0){
     //Qk - Element k of the table (in zig-zag order)
 
     val length by bytesAsInt(2)
-    val precision by bits(4)
-    val identifier by bits(4)
+    val precision by bitsAsInt(4)
+    val identifier by bitsAsInt(4)
     val table by byteArray(64)
 }
 
@@ -99,8 +138,8 @@ class JfifQuantizationWrapper(source: InputStream): StreamWrapper<JfifQuantizati
 
 class FrameChannel(val backing: ByteArray, val offset: Int): ByteMappedObject(backing, offset) {
     val id by bytesAsInt(1)
-    val horizontalSamplingFactor by bits(4)
-    val verticalSamplingFactor by bits(4)
+    val horizontalSamplingFactor by bitsAsInt(4)
+    val verticalSamplingFactor by bitsAsInt(4)
     val quantizationTableId by bytesAsInt(1)
 }
 
@@ -128,4 +167,24 @@ open class StreamWrapper<T: ByteMappedObject>(source: InputStream, cons: (ByteAr
         source.read(backingArray, 2, length - 2)
         data = cons(backingArray)
     }
+}
+
+class JfifCommentWrapper(source: InputStream): StreamWrapper<JfifComment> (source, { JfifComment(it) })
+
+class JfifComment(backing: ByteArray): ByteMappedObject(backing, 0) {
+    //2 bytes: App0 marker (already read)
+    //~~~~~~~~
+    //2 bytes: length
+    //length - 2 bytes: The string
+
+    val length by bytesAsInt(2)
+    private val stringData by byteArray(length - 2)
+    val string = String(stringData)
+}
+
+class RestartIntervalWrapper(source: InputStream): StreamWrapper<RestartIntervalTable>(source, { RestartIntervalTable(it) })
+
+class RestartIntervalTable(backing: ByteArray): ByteMappedObject(backing, 0) {
+    val length by bytesAsInt(2) //always 4
+    val mcuRowsPerInterval by bytesAsInt(2)
 }

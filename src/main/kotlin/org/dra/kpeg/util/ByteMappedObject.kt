@@ -36,7 +36,7 @@ interface ArrayBackedData {
     }
 
     //note this is unsafe for objects which cross byte boundaries
-    fun bits(size: Int): AbdDelegateIntBits {
+    fun bitsAsInt(size: Int): AbdDelegateIntBits {
         val res = AbdDelegateIntBits(data, startIndex + nextIndex, nextBits, size)
         nextBits += size
         if(nextBits >= 8) {
