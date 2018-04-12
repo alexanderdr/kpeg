@@ -51,7 +51,7 @@ class HuffmanTool {
                         val n = flattenedList[i].second
                         //right != null produces better results when the depth is less than 16
                         //otherwise we can end up in a situation where we have a layer with only one inner node in it
-                        if (n is InnerNode && n.left is LeafNode && n.right != null) {
+                        if (n.left is LeafNode && n.right != null) {
                             currentPlaced = true
                             val newInner = InnerNode(n.left, current)
                             n.left = newInner
@@ -76,12 +76,11 @@ class HuffmanTool {
             //end the leaf switch logic
 
             //turn it into a table and back...
-            val result = HuffmanTable(tree).createTree()
 
-            return result
+            return HuffmanTable(tree).createTree()
         }
 
-        fun buildLengthList(node: ProtoNode): List<Pair<Int, InnerNode>> {
+        private fun buildLengthList(node: ProtoNode): List<Pair<Int, InnerNode>> {
             val res = mutableListOf<Pair<Int, InnerNode>>()
             fun visitAllNodes(depth: Int, current: ProtoNode) {
                 if(current is InnerNode) {
@@ -100,11 +99,11 @@ class HuffmanTool {
         }
 
         fun depth(node: ProtoNode, depth: Int = 0): Int {
-            if(node is InnerNode) {
+            return if(node is InnerNode) {
                 val rightDepth = node.right?.let { depth(it, depth + 1) } ?:  0
-                return Math.max(depth(node.left, depth + 1), rightDepth)
+                Math.max(depth(node.left, depth + 1), rightDepth)
             } else {
-                return depth //how many edges have been traversed
+                depth //how many edges have been traversed
             }
         }
 
@@ -118,6 +117,7 @@ class HuffmanTool {
                 incidences[it.toInt() and 0xFF]++
             }
 
+            @Suppress("UnnecessaryVariable")
             val leaves = incidences.mapIndexed { index, frequency -> frequency to leafNodeOf(index.toByte()) }
                     .filter { it.first != 0 }
                     .sortedBy { it.first }
@@ -137,6 +137,8 @@ class HuffmanTool {
             while (leaves.size > 0 || nodeList.size > 1) {
 
                 fun pick(): Pair<Int, ProtoNode> {
+                    // Nesting these reduces legibility
+                    @Suppress("LiftReturnOrAssignment")
                     if (leaves.size > 0 && nodeList.size > 0) {
                         //break ties preferring leaf nodes (leads to a flatter tree)
                         return if (leaves[0].first <= nodeList[0].first) {
@@ -183,11 +185,7 @@ class HuffmanTool {
             val encodingMap = generateMap(root)
 
             fun addBits(item: Byte) {
-                val bits = encodingMap[item]
-
-                if(bits == null) {
-                    throw IllegalArgumentException("No leaf in node to encode value '$item'")
-                }
+                val bits = encodingMap[item] ?: throw IllegalArgumentException("No leaf in node to encode value '$item'")
 
                 val value = bits.value
                 val len = bits.length
@@ -226,17 +224,17 @@ class HuffmanTool {
         }
 
         //Returns value, bits read
-        fun decodeOneItem(data: IntArray, bitOffset: Int, root: ProtoNode): Pair<Byte, Int> {
+        private fun decodeOneItem(data: IntArray, bitOffset: Int, root: ProtoNode): Pair<Byte, Int> {
             var current = root
             var bit = bitOffset
 
             while(true) {
                 if (current is InnerNode) {
-                    if (data.getBit(bit) == 0) {
-                        current = current.left
+                    current = if (data.getBit(bit) == 0) {
+                        current.left
                     } else {
                         if (current.right != null) {
-                            current = current.right!!
+                            current.right!!
                         } else {
                             throw IllegalStateException("Attempted to read right node when there is none")
                         }
@@ -252,6 +250,7 @@ class HuffmanTool {
             }
         }
 
+        //todo: combine this with the above
         fun decodeOneItem(data: ByteBuffer, bitOffset: Int, root: ProtoNode): Pair<Byte, Int> {
             var current = root
             var bit = bitOffset
@@ -262,11 +261,11 @@ class HuffmanTool {
 
             while(true) {
                 if (current is InnerNode) {
-                    if (data.getBitAsOne(bit) == 0) {
-                        current = current.left
+                    current = if (data.getBitAsOne(bit) == 0) {
+                        current.left
                     } else {
                         if (current.right != null) {
-                            current = current.right!!
+                            current.right!!
                         } else {
                             throw IllegalStateException("Attempted to read right node when there is none bitIndex: $bit")
                         }
@@ -340,6 +339,7 @@ class HuffmanTool {
             }
         }
 
+        @Suppress("MemberVisibilityCanPrivate", "unused")
         fun printNodes(cur: ProtoNode, byteString: String = "", spacing: Int = 0) {
             print(" ".repeat(spacing))
 
@@ -371,11 +371,11 @@ class HuffmanTool {
             return true //we get here it both are null or ProtoNodes (somehow)
         }
 
-        fun leafNodeOf(value: Byte): ProtoNode {
+        private fun leafNodeOf(value: Byte): ProtoNode {
             return LeafNode(value)
         }
 
-        fun internalNodeOf(left: ProtoNode, right: ProtoNode?): ProtoNode {
+        private fun internalNodeOf(left: ProtoNode, right: ProtoNode?): ProtoNode {
             return InnerNode(left, right)
         }
 
@@ -394,35 +394,17 @@ class HuffmanTool {
             }
         }
 
-        class InnerNode(var left: ProtoNode, var right: ProtoNode?): ProtoNode() {
-            val weight = calcWeight()
-
-            private fun calcWeight(): Int {
-                var weight = 0
-                left.let {
-                    if(it is InnerNode) {
-                        weight += it.weight
-                    }
-                }
-                right?.let {
-                    if(it is InnerNode) {
-                        weight += it.weight
-                    }
-                }
-
-                return weight + 2
-            }
-        }
+        class InnerNode(var left: ProtoNode, var right: ProtoNode?): ProtoNode()
         class LeafNode(val value: Byte): ProtoNode()
     }
 
     class HuffmanTable(data: ArrayList<ArrayList<Byte>?>) {
         val table = data
-        var tree: ProtoNode? = null
+        private var tree: ProtoNode? = null
 
         constructor(root: ProtoNode): this(ArrayList<ArrayList<Byte>?>()) {
             for(i in 0..16) {
-                table.add(arrayListOf<Byte>())
+                table.add(arrayListOf())
             }
             populateTable(root)
         }
@@ -441,6 +423,7 @@ class HuffmanTool {
                 val list = table[i]
 
                 if(list != null) {
+                    @Suppress("LoopToCallChain")
                     for (j in 0 until list.size) {
                         nextList.add(LeafNode(list[j]))
                     }
@@ -456,7 +439,7 @@ class HuffmanTool {
                 }
 
                 lowerList = nextList
-                nextList = arrayListOf<ProtoNode>()
+                nextList = arrayListOf()
             }
 
 
@@ -472,7 +455,7 @@ class HuffmanTool {
             return res
         }
 
-        fun populateTable(root: ProtoNode) {
+        private fun populateTable(root: ProtoNode) {
             var curLevel = arrayListOf(root)
             var next = arrayListOf<ProtoNode>()
 
@@ -503,6 +486,7 @@ class HuffmanTool {
 
     }
 
+    @Suppress("unused", "MemberVisibilityCanPrivate")
     fun ProtoNode.forEach(action: (ProtoNode) -> Unit) {
         if(this is InnerNode) {
             left.forEach(action)

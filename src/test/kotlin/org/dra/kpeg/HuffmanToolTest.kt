@@ -23,7 +23,7 @@ class HuffmanToolTest {
 
         val bits = HuffmanTool.encode(testString.toByteArray(), node)
 
-        println(bits.map{it.toBinaryString()}.joinToString(","))
+        //println(bits.map{it.toBinaryString()}.joinToString(","))
 
         val encodedInts = intArrayOf(0b00110000011111110011010101001011,
                                                 0b10100101110001010001010100101110.toInt(),
@@ -62,11 +62,11 @@ class HuffmanToolTest {
         assertEquals(tree.fold(0) { curValue, node -> if(node is HuffmanTool.Companion.LeafNode) { curValue + 1 } else { curValue }}, 17)
     }
 
-    @Test
+    /*@Test
     fun testDataLoad() {
         val tree = buildJpegFriendlyTree(byteArrayOf(0, 12, 3, 1, 0, 2, 17, 3, 17, 0, 63, 0))
-        HuffmanTool.printNodes(tree)
-    }
+        //HuffmanTool.printNodes(tree)
+    }*/
 
     @Test
     fun testSerialization() {

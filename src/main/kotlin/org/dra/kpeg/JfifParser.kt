@@ -92,13 +92,13 @@ class JfifParser {
 
                 var currentComponent = 0
 
-                val ops = listOf<MutableList<JpegCodec.EncodeOp>>(mutableListOf()
+                val ops = listOf<MutableList<EncodeOp>>(mutableListOf()
                         , mutableListOf()
                         , mutableListOf())
 
                 var component = scan.interleavedComponents[currentComponent]
                 var bitIndex = 0
-                fun readOp(isDc: Boolean): JpegCodec.EncodeOp {
+                fun readOp(isDc: Boolean): EncodeOp {
                     val (op, currentBit) = readEncodeOp(buffer, bitIndex, component, isDc)
                     bitIndex = currentBit
                     return op
@@ -111,7 +111,7 @@ class JfifParser {
                             for (i in 0 until frame.channels.get(currentComponent).horizontalSamplingFactor) {
                                 //read one block per channel, the first item is always a DC coefficient
 
-                                val blockOps = mutableListOf<JpegCodec.EncodeOp>()
+                                val blockOps = mutableListOf<EncodeOp>()
 
                                 val dcOp = readOp(true)
                                 ops[currentComponent].add(dcOp)
@@ -122,11 +122,11 @@ class JfifParser {
                                     ops[currentComponent].add(op)
                                     blockOps.add(op)
                                     zeroSum += op.leadingZeroes + 1
-                                } while (op != JpegCodec.EncodeOp.END_BLOCK && zeroSum < 64)
+                                } while (op != EncodeOp.END_BLOCK && zeroSum < 64)
 
                                 var sum = 0
                                 for (op in blockOps) {
-                                    if (op == JpegCodec.EncodeOp.END_BLOCK) {
+                                    if (op == EncodeOp.END_BLOCK) {
                                         if (sum < 64) {
                                             sum = 64
                                         }
@@ -250,7 +250,7 @@ class JfifParser {
                                 blockIndex++
 
                                 opIndex++
-                            } while (op != JpegCodec.EncodeOp.END_BLOCK && blockIndex < 64)
+                            } while (op != EncodeOp.END_BLOCK && blockIndex < 64)
 
                             val quantTable = this.quantTables[frame.channels.get(currentComponent).quantizationTableId]!!.table.map { it.toInt() }.toIntArray()
                             val unZigzagQuant = IntArray(64)
@@ -312,7 +312,7 @@ class JfifParser {
             return output
         }
 
-        private fun readEncodeOp(buffer: ByteBuffer, bitIndex: Int, currentComponent: ChannelData, isDc: Boolean): Pair<JpegCodec.EncodeOp, Int> {
+        private fun readEncodeOp(buffer: ByteBuffer, bitIndex: Int, currentComponent: ChannelData, isDc: Boolean): Pair<EncodeOp, Int> {
 
             val table = (if(isDc) {
                     getDecodedDcTable(currentComponent.dcTableId)
@@ -329,7 +329,7 @@ class JfifParser {
             val encodedMagnitude = buffer.readNBits(currentBit, valueLength)
             val magnitude = JpegCodec.Companion.expandDecodeInt(encodedMagnitude, valueLength)
 
-            return JpegCodec.EncodeOp(leadingZeroes, magnitude) to currentBit + valueLength
+            return EncodeOp(leadingZeroes, magnitude) to currentBit + valueLength
         }
 
 
@@ -351,7 +351,7 @@ class JfifParser {
             class ResetMarker(val id: Int): DataSection()
 
             //outer list is for channels, inner is item
-            class RleDecodedData(val data: List<List<JpegCodec.EncodeOp>>): DataSection()
+            class RleDecodedData(val data: List<List<EncodeOp>>): DataSection()
         }
 
         fun readFileData(stream: InputStream, parserState: ParserState = ParserState()): Pair<ParserState, List<DataSection>> {

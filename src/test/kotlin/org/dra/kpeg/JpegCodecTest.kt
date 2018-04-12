@@ -119,11 +119,11 @@ class JpegCodecTest {
 
     @Test
     fun testEncodeOp() {
-        val opNeg7 = JpegCodec.EncodeOp(0, -7)
-        val op7 = JpegCodec.EncodeOp(0, 7)
-        val op1 = JpegCodec.EncodeOp(0, 1)
-        val opNeg1 = JpegCodec.EncodeOp(0, -1)
-        val op17 = JpegCodec.EncodeOp(0, 17)
+        val opNeg7 = EncodeOp(0, -7)
+        val op7 = EncodeOp(0, 7)
+        val op1 = EncodeOp(0, 1)
+        val opNeg1 = EncodeOp(0, -1)
+        val op17 = EncodeOp(0, 17)
 
         Assert.assertEquals(opNeg7.getBytes(), (3.toByte() to 0.toByte()))
         Assert.assertEquals(op7.getBytes(), 3.toByte() to 7.toByte())

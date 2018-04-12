@@ -2,6 +2,7 @@ package org.dra.kpeg
 
 import org.dra.kpeg.util.i
 import org.testng.Assert
+import org.testng.Assert.fail
 import org.testng.annotations.Test
 
 /**
@@ -48,6 +49,7 @@ class ColorSpaceTest {
         }
     }
 
+    //This test is slow (several seconds)
     @Test
     fun `exhaustive color space search`() {
         var rgb = RgbDataColor(0, 0, 0)
@@ -69,7 +71,8 @@ class ColorSpaceTest {
             val og = rgbOutput.g.i - rgb.g.i
             val ob = rgbOutput.b.i - rgb.b.i
             if(Math.abs(or) > 1 || Math.abs(og) > 1 || Math.abs(ob) > 1) {
-                println("$rgb \n produces a delta of $or $og $ob")
+                //println("$rgb \n produces a delta of $or $og $ob")
+                fail("$rgb \n produces a delta of $or $og $ob")
             }
             //println(i)
         }

@@ -38,7 +38,7 @@ open class Quantizer(val matrix: IntArray) {
                 if(y != 0 || x != 0) {
                     val res = (block[y, x] / matrix[y * w + x]).roundToInt()
                     if(res > 255 || res < -255) {
-                        println("This could be a problem quantizing, $res outside of the encodable range of -255 to 255 $y,$x")
+                        //println("This could be a problem quantizing, $res outside of the encodable range of -255 to 255 $y,$x")
                     }
                 }
                 output[y, x] = (block[y, x] / matrix[y * w + x]).roundToInt()
@@ -61,7 +61,7 @@ open class Quantizer(val matrix: IntArray) {
                 if(y != 0 && x != 0) {
                     val res = (block[y, x] * matrix[y * w + x])
                     if(res > 255 || res < -255) {
-                        println("This could be a problem dequantizing $res outside of normal range of -255 to 255 $y,$x")
+                        //println("This could be a problem dequantizing $res outside of normal range of -255 to 255 $y,$x")
                     }
                 }
                 output[y, x] = (block[y, x] * matrix[y * w + x])

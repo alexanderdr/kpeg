@@ -1,10 +1,7 @@
 package org.dra.kpeg
 
-import org.dra.kpeg.util.ByteMappedObject
 import org.dra.kpeg.util.i
-import org.dra.kpeg.util.roundToByte
 import java.io.ByteArrayOutputStream
-import java.io.InputStream
 import java.io.OutputStream
 import java.lang.Math.PI
 import java.lang.Math.cos
@@ -26,9 +23,6 @@ open class JpegCodec {
                                        29, 22, 15, 23, 30, 37, 44, 51,
                                        58, 59, 52, 45, 38, 31, 39, 46,
                                        53, 60, 61, 54, 47, 55, 62, 63)
-
-        //width << 4 | height
-        val zigzagMap = mutableMapOf<Int, IntArray>((8 shl 4) or 8 to zigzagPattern)
 
         //bytes in ARGB format
         @JvmStatic
@@ -78,8 +72,8 @@ open class JpegCodec {
             val huffDiff = HuffmanTool.buildJpegFriendlyTree(allDcLengths.toByteArray())
             val huff = HuffmanTool.buildJpegFriendlyTree(allAcValues.toByteArray())
 
-            HuffmanTool.printNodes(huffDiff)
-            HuffmanTool.printNodes(huff)
+            //HuffmanTool.printNodes(huffDiff)
+            //HuffmanTool.printNodes(huff)
 
             val jfif = Jfif()
             jfif.addChunk(JfifApp0(width, height))
@@ -90,7 +84,7 @@ open class JpegCodec {
             jfif.addChunk(ScanFrame())
             jfif.addChunk(ThreeChannelDataFrame(lumChannel, blueChannel, redChannel, dcs, huffDiff, huff))
 
-            org.dra.kpeg.HuffmanTool.printNodes(huff)
+            //HuffmanTool.printNodes(huff)
 
             val output = ByteArrayOutputStream()
             jfif.writeTo(output)
@@ -567,20 +561,12 @@ open class JpegCodec {
             }
         }
 
-        private fun buildTreeForAllOps(encodingOps: MutableList<List<EncodeOp>>): HuffmanTool.Companion.ProtoNode {
-            val flatList = encodingOps.flatMap { it }
-            return buildTreeForOps(flatList)
-        }
-
         fun buildTreeForOps(encodingOps: List<EncodeOp>): HuffmanTool.Companion.ProtoNode {
             val huffInput = mutableListOf<Byte>()
             encodingOps.forEach {
                 val bytes = it.getBytes()
                 huffInput.add(bytes.first)
             }
-
-            //also need to make sure we don't use any representation consistenting only of 1s
-            //also need to make sure the node represented by 0xFF is unoccupied apparently
 
             val tree = HuffmanTool.buildJpegFriendlyTree(huffInput.toByteArray())
 
@@ -834,40 +820,6 @@ open class JpegCodec {
             }
 
             return Triple(c1, c2, c3)
-        }
-    }
-
-    class EncodeOp(val leadingZeroes: Int, val data: Int) {
-        fun getBytes(): Pair<Byte, Byte> {
-            //write the data, in two bytes, (eventually) huffman encoded byte1: (zzzz,dddd) where zzzz are leading zero bits, and dddd is the number of data bits
-            //the second byte is purely data, which will not be huffman encoded.
-
-            val (len, encData) = expandEncodeInt(data)
-            val lzByte = ((leadingZeroes shl 4) or len).toByte()
-            return lzByte to encData.roundToByte()
-        }
-
-        override fun equals(other: Any?): Boolean {
-            if (this === other) return true
-            if (other?.javaClass != javaClass) return false
-
-            other as EncodeOp
-
-            if (leadingZeroes != other.leadingZeroes) return false
-            if (data != other.data) return false
-
-            return true
-        }
-
-        override fun hashCode(): Int {
-            var result = leadingZeroes
-            result = 31 * result + data
-            return result
-        }
-
-        companion object {
-            //This should only happen if we already have 15 leading zeroes
-            val END_BLOCK = EncodeOp(0, 0)
         }
     }
 

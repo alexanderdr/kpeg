@@ -73,10 +73,7 @@ interface ArrayBackedData {
         var totalSize = 0
         val dataArray: ArrayList<T>
         init {
-            // So this initialization is really ugly thanks to type erasure
-            // but dataArray will conform to the signature by the time the constructor is finished
-            @Suppress("UNCHECKED_CAST")
-            dataArray = ArrayList<T>(count)
+            dataArray = ArrayList(count)
             for(i in 0 until count){
                 val item = creator(dataSource, location + totalSize)
                 totalSize += item.nextIndex

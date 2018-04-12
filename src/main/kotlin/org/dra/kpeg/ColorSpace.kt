@@ -34,15 +34,6 @@ class ColorSpace {
             }
         }
 
-        //useful for testing
-        fun rgbToYcbcr(r: Float, g: Float, b: Float): Triple<Byte, Byte, Byte> {
-            val y = (r * .299F + g * .587F + b * .114F).roundToByte()
-            val b = (128 - (r * .168736F + g * .331264F - b * .5F)).roundToByte()
-            val r = (128 - (r * -.5F + g * .418688F + b * .081312F)).roundToByte()
-
-            return Triple(y, b, r)
-        }
-
         //Jpeg XR
         fun rgbToYuv(input: RgbView, output: YuvView) {
             with(input) {
