@@ -161,13 +161,14 @@ class JpegCodecTest {
 
         val output = JpegCodec.encodeColors(dataBytes, width, height, Quantizer({x, y -> Math.max(4, (x + 1) * (y + 1))}))
 
-        val f = File("test_data/testEncodeColorsOutput.jpg")
+        //This can be useful for debugging
+        /*val f = File("test_data/testEncodeColorsOutput.jpg")
         f.delete()
         f.createNewFile()
-        f.writeBytes(output)
+        f.writeBytes(output)*/
 
         //sanity check that we produce a real jpeg that Java can read
-        val roundTwo = loadFilenameAsBytes("testEncodeColorsOutput.jpg")
+        val roundTwo = weaveImageChannels(ImageIO.read(ByteArrayInputStream(output)))
 
         //This might need to change if any improvements to the encoding process are implemented
         val expectedOutput = loadFilenameAsBytes("testDataRencoded_max_4_xp1_times_yp1.jpg")
@@ -187,7 +188,7 @@ class JpegCodecTest {
         f.writeBytes(output)
 
         //sanity check that we produce a real jpeg that Java can read
-        val roundTwo = loadFilenameAsBytes("synth_white_reencoded.jpg")
+        val roundTwo = weaveImageChannels(ImageIO.read(ByteArrayInputStream(output)))
 
         //This might need to change if any improvements to the encoding process are implemented
         //val expectedOutput = loadFilenameAsBytes("testDataRencoded_max_4_xp1_times_yp1.jpg")
